@@ -43,6 +43,8 @@
 #or otherwise, the contributor releases their content to the
 #license and copyright terms herein.
 
+STRING(TOLOWER "${CMAKE_HOST_SYSTEM_PROCESSOR}" ARCH)
+
 SET(Open_BLAS_INCLUDE_SEARCH_PATHS
   $ENV{OpenBLAS_HOME}
   $ENV{OpenBLAS_HOME}/include
@@ -54,7 +56,7 @@ SET(Open_BLAS_INCLUDE_SEARCH_PATHS
   /usr/include/openblas-base
   /usr/local/include
   /usr/include
-  /usr/include/$(uname -m)-linux-gnu
+  /usr/include/${ARCH}-linux-gnu
 )
 
 SET(Open_BLAS_LIB_SEARCH_PATHS
@@ -71,7 +73,7 @@ SET(Open_BLAS_LIB_SEARCH_PATHS
         /usr/lib/openblas-base
         /usr/lib64
         /usr/lib
-        /usr/lib/$(uname -m)-linux-gnu
+        /usr/lib/${ARCH}-linux-gnu
  )
 
 FIND_PATH(OpenBLAS_INCLUDE_DIR NAMES cblas.h PATHS ${Open_BLAS_INCLUDE_SEARCH_PATHS} NO_DEFAULT_PATH)
