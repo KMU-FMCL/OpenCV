@@ -101,22 +101,18 @@ public:
 // FIXME: taken from DNN module
 static void initDLDTDataPath()
 {
-#ifndef WINRT
     static bool initialized = false;
     if (!initialized)
     {
-        const char* omzDataPath = getenv("OPENCV_OPEN_MODEL_ZOO_DATA_PATH");
-        if (omzDataPath)
-            cvtest::addDataSearchPath(omzDataPath);
-        const char* dnnDataPath = getenv("OPENCV_DNN_TEST_DATA_PATH");
-        if (dnnDataPath) {
+        cvtest::addDataSearchEnv("OPENCV_OPEN_MODEL_ZOO_DATA_PATH");
+        const std::string dnnDataPath = cv::utils::getConfigurationParameterString("OPENCV_DNN_TEST_DATA_PATH");
+        if (!dnnDataPath.empty()) {
             // Add the dnnDataPath itself - G-API is using some images there directly
             cvtest::addDataSearchPath(dnnDataPath);
             cvtest::addDataSearchPath(dnnDataPath + std::string("/omz_intel_models"));
         }
         initialized = true;
     }
-#endif // WINRT
 }
 
 #if INF_ENGINE_RELEASE >= 2020010000
@@ -1825,6 +1821,9 @@ TEST(InferList, TestStreamingInfer)
 
 TEST(Infer2, TestStreamingInfer)
 {
+    if (cvtest::skipUnstableTests)
+        throw SkipTestException("Skip InferROI.TestStreamingInfer as it hangs sporadically");
+
     initDLDTDataPath();
 
     std::string filepath = findDataFile("cv/video/768x576.avi");

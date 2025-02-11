@@ -158,6 +158,7 @@ class Builder:
         self.debug = True if config.debug else False
         self.debug_info = True if config.debug_info else False
         self.no_samples_build = True if config.no_samples_build else False
+        self.hwasan = True if config.hwasan else False
         self.opencl = True if config.opencl else False
         self.no_kotlin = True if config.no_kotlin else False
         self.shared = True if config.shared else False
@@ -265,6 +266,16 @@ class Builder:
         if no_media_ndk:
             cmake_vars['WITH_ANDROID_MEDIANDK'] = "OFF"
 
+        if self.hwasan and "arm64" in abi.name:
+            cmake_vars['OPENCV_ENABLE_MEMORY_SANITIZER'] = "ON"
+            hwasan_flags = "-fno-omit-frame-pointer -fsanitize=hwaddress"
+            for s in ['OPENCV_EXTRA_C_FLAGS', 'OPENCV_EXTRA_CXX_FLAGS', 'OPENCV_EXTRA_EXE_LINKER_FLAGS',
+                      'OPENCV_EXTRA_SHARED_LINKER_FLAGS', 'OPENCV_EXTRA_MODULE_LINKER_FLAGS']:
+                if s in cmake_vars.keys():
+                    cmake_vars[s] = cmake_vars[s] + ' ' + hwasan_flags
+                else:
+                    cmake_vars[s] = hwasan_flags
+
         cmake_vars.update(abi.cmake_vars)
 
         if len(self.disable) > 0:
@@ -274,7 +285,10 @@ class Builder:
         cmd.append(self.opencvdir)
         execute(cmd)
         # full parallelism for C++ compilation tasks
-        execute([self.ninja_path, "opencv_modules"])
+        build_targets = ["opencv_modules"]
+        if do_install:
+            build_targets.append("opencv_tests")
+        execute([self.ninja_path, *build_targets])
         # limit parallelism for building samples (avoid huge memory consumption)
         if self.no_samples_build:
             execute([self.ninja_path, "install" if (self.debug_info or self.debug) else "install/strip"])
@@ -289,6 +303,14 @@ class Builder:
                     classpaths.append(os.path.join(dir, f))
         srcdir = os.path.join(self.resultdest, 'sdk', 'java', 'src')
         dstdir = self.docdest
+        # HACK: create stubs for auto-generated files to satisfy imports
+        with open(os.path.join(srcdir, 'org', 'opencv', 'BuildConfig.java'), 'wt') as fs:
+            fs.write("package org.opencv;\n public class BuildConfig {\n}")
+            fs.close()
+        with open(os.path.join(srcdir, 'org', 'opencv', 'R.java'), 'wt') as fs:
+            fs.write("package org.opencv;\n public class R {\n}")
+            fs.close()
+
         # synchronize with modules/java/jar/build.xml.in
         shutil.copy2(os.path.join(SCRIPT_DIR, '../../doc/mymath.js'), dstdir)
         cmd = [
@@ -316,9 +338,12 @@ class Builder:
             '-bottom', 'Generated on %s / OpenCV %s' % (time.strftime("%Y-%m-%d %H:%M:%S"), self.opencv_version),
             "-d", dstdir,
             "-classpath", ":".join(classpaths),
-            '-subpackages', 'org.opencv',
+            '-subpackages', 'org.opencv'
         ]
         execute(cmd)
+        # HACK: remove temporary files needed to satisfy javadoc imports
+        os.remove(os.path.join(srcdir, 'org', 'opencv', 'BuildConfig.java'))
+        os.remove(os.path.join(srcdir, 'org', 'opencv', 'R.java'))
 
     def gather_results(self):
         # Copy all files
@@ -380,6 +405,7 @@ if __name__ == "__main__":
     parser.add_argument('--no_kotlin', action="store_true", help="Disable Kotlin extensions")
     parser.add_argument('--shared', action="store_true", help="Build shared libraries")
     parser.add_argument('--no_media_ndk', action="store_true", help="Do not link Media NDK (required for video I/O support)")
+    parser.add_argument('--hwasan', action="store_true", help="Enable Hardware Address Sanitizer on ARM64")
     parser.add_argument('--disable', metavar='FEATURE', default=[], action='append', help='OpenCV features to disable (add WITH_*=OFF). To disable multiple, specify this flag again, e.g. "--disable TBB --disable OPENMP"')
     args = parser.parse_args()
 
