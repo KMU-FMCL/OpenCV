@@ -6,12 +6,14 @@ if (WIN32 AND NOT ARM)
 endif()
 
 ocv_update(OPENCV_TBB_RELEASE "v2021.11.0")
-# ocv_update(OPENCV_TBB_RELEASE_MD5 "b301151120b08a17e98dcdda6e4f6011")
+ocv_update(OPENCV_TBB_RELEASE_MD5 "b301151120b08a17e98dcdda6e4f6011")
 ocv_update(OPENCV_TBB_FILENAME "${OPENCV_TBB_RELEASE}.tar.gz")
 string(REGEX REPLACE "^v" "" OPENCV_TBB_RELEASE_ "${OPENCV_TBB_RELEASE}")
+#ocv_update(OPENCV_TBB_SUBDIR ...)
 
 set(tbb_src_dir "${OpenCV_BINARY_DIR}/3rdparty/tbb")
 ocv_download(FILENAME ${OPENCV_TBB_FILENAME}
+             HASH ${OPENCV_TBB_RELEASE_MD5}
              URL
                "${OPENCV_TBB_URL}"
                "$ENV{OPENCV_TBB_URL}"
