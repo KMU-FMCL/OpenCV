@@ -17,7 +17,7 @@ ocv_download(FILENAME ${OPENCV_TBB_FILENAME}
              URL
                "${OPENCV_TBB_URL}"
                "$ENV{OPENCV_TBB_URL}"
-               "https://github.com/oneapi-src/oneTBB/archive/refs/tags/"
+               "https://github.com/KMU-FMCL/oneTBB/archive/refs/tags/"
              DESTINATION_DIR ${tbb_src_dir}
              ID TBB
              STATUS res
